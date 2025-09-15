@@ -1,0 +1,22 @@
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6
+
+ARG RUN_JAVA_VERSION=1.3.8
+ENV RUN_JAVA_VERSION=${RUN_JAVA_VERSION}
+
+RUN microdnf install curl ca-certificates \
+    && microdnf update \
+    && microdnf clean all \
+    && mkdir /deployments \
+    && curl https://repo1.maven.org/maven2/io/fabric8/run-java-sh/${RUN_JAVA_VERSION}/run-java-sh-${RUN_JAVA_VERSION}-sh.sh -o /deployments/run-java.sh \
+    && chown 185 /deployments/run-java.sh \
+    && chmod 544 /deployments/run-java.sh
+
+COPY --chown=185 target/*-runner /deployments/application
+
+ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0"
+ENV JAVA_APP_JAR="/deployments/application"
+
+EXPOSE 8081
+USER 185
+
+ENTRYPOINT [ "/deployments/run-java.sh" ]
