@@ -24,15 +24,15 @@ public class EmailMessageProcessor {
     @Blocking
     public EmailRequest process(EmailRequest emailRequest) {
         LOG.infof("Processing email request to %s with subject: %s", 
-                 emailRequest.getTo(), emailRequest.getSubject());
+                 emailRequest.to(), emailRequest.subject());
         return emailRequest;
     }
     
     @Incoming("emails-out")
     @Blocking
     public void send(EmailRequest emailRequest) {
-        LOG.infof("Sending email to %s with subject: %s", 
-                 emailRequest.getTo(), emailRequest.getSubject());
+        LOG.infof("Sending email to %s with subject: %s",
+                 emailRequest.to(), emailRequest.subject());
         emailService.sendEmail(emailRequest);
     }
 }

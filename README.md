@@ -14,7 +14,7 @@ A microservice for sending emails built with Quarkus.
 
 ## Prerequisites
 
-- JDK 17+
+- JDK 25
 - Maven 3.8.1+
 - Docker (optional, for containerization)
 

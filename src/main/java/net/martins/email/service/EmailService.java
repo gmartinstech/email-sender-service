@@ -25,7 +25,6 @@ public class EmailService {
     private Mailer currentMailer;
     
     public EmailService() {
-        // Default to primary mailer
         this.currentMailer = primaryMailer;
     }
     
@@ -37,39 +36,19 @@ public class EmailService {
     }
     
     public void sendEmail(EmailRequest request) {
+        
         try {
-            Mail mail = Mail.withHtml(request.getTo(), request.getSubject(), request.getBody());
-            
-            if (request.getCc() != null && !request.getCc().isEmpty()) {
-                mail.setCc(request.getCc());
-            }
-            
-            if (request.getBcc() != null && !request.getBcc().isEmpty()) {
-                mail.setBcc(request.getBcc());
-            }
-            
-            if (!request.isHtml()) {
-                mail.setText(request.getBody());
-            }
+            var getTo = String.join(",", request.to());
+            var mail = Mail.withHtml(getTo, request.subject(), request.body());
+            if (request.cc() != null && !request.cc().isEmpty()) mail.setCc(request.cc());
+            if (request.bcc() != null && !request.bcc().isEmpty()) mail.setBcc(request.bcc());
+            if (!request.html()) mail.setText(request.body());
             
             currentMailer.send(mail);
-            LOG.infof("Email sent successfully to %s with subject: %s", request.getTo(), request.getSubject());
+            LOG.infof("Email sent successfully to %s with subject: %s", getTo, request.subject());
         } catch (Exception e) {
             LOG.errorf("Failed to send email to %s with subject: %s. Error: %s", 
-                      request.getTo(), request.getSubject(), e.getMessage(), e);
-            
-            // Try fallback mailer
-            try {
-                Mailer fallbackMailer = (currentMailer == primaryMailer) ? secondaryMailer : primaryMailer;
-                fallbackMailer.send(mail);
-                LOG.infof("Email sent successfully using fallback mailer to %s with subject: %s", 
-                         request.getTo(), request.getSubject());
-                // Switch to fallback mailer for subsequent requests
-                currentMailer = fallbackMailer;
-            } catch (Exception fallbackException) {
-                LOG.errorf("Failed to send email using fallback mailer. Error: %s", fallbackException.getMessage());
-                throw new RuntimeException("Failed to send email using both primary and fallback mailers", fallbackException);
-            }
+                      request.to(), request.subject(), e.getMessage(), e);
         }
     }
     
