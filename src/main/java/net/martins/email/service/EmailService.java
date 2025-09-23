@@ -5,6 +5,7 @@ import io.quarkus.mailer.Mailer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import net.martins.email.config.MailerConfiguration;
 import net.martins.email.model.EmailRequest;
 import org.jboss.logging.Logger;
 import io.smallrye.mutiny.Uni;
@@ -22,11 +23,8 @@ public class EmailService {
     @Named("secondary")
     Mailer secondaryMailer;
     
-    private Mailer currentMailer;
-    
-    public EmailService() {
-        this.currentMailer = primaryMailer;
-    }
+    @Inject
+    MailerConfiguration mailerConfiguration;
     
     public Uni<Void> sendEmailAsync(EmailRequest request) {
         return Uni.createFrom().item(() -> {
@@ -36,6 +34,17 @@ public class EmailService {
     }
     
     public void sendEmail(EmailRequest request) {
+        Mailer mailerToUse;
+        
+        // Determine which mailer to use based on configuration
+        String defaultProvider = mailerConfiguration.getDefaultProvider();
+        if ("secondary".equals(defaultProvider)) {
+            mailerToUse = secondaryMailer;
+            LOG.info("Using secondary mailer as default provider");
+        } else {
+            mailerToUse = primaryMailer;
+            LOG.info("Using primary mailer as default provider");
+        }
         
         try {
             var getTo = String.join(",", request.to());
@@ -44,19 +53,11 @@ public class EmailService {
             if (request.bcc() != null && !request.bcc().isEmpty()) mail.setBcc(request.bcc());
             if (!request.html()) mail.setText(request.body());
             
-            currentMailer.send(mail);
+            mailerToUse.send(mail);
             LOG.infof("Email sent successfully to %s with subject: %s", getTo, request.subject());
         } catch (Exception e) {
             LOG.errorf("Failed to send email to %s with subject: %s. Error: %s", 
                       request.to(), request.subject(), e.getMessage(), e);
         }
-    }
-    
-    public void switchToPrimaryMailer() {
-        this.currentMailer = primaryMailer;
-    }
-    
-    public void switchToSecondaryMailer() {
-        this.currentMailer = secondaryMailer;
     }
 }
